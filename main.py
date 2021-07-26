@@ -23,7 +23,6 @@ class ParserStat:
 
                 if page is None:
                     break
-
                 items = soup.find_all('article', class_='tm-articles-list__item')
                 for item in items:
 
