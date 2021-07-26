@@ -1,46 +1,60 @@
+from urllib.parse import urljoin
+from importlib import reload
 from bs4 import BeautifulSoup
 import requests as req
 import json
 
+
 class ParserStat:
+
     def __init__(self):
         self.url = 'https://habr.com/ru/users/newtechaudit/posts/page'
 
-    def get_info(self):
+    def get_page_data(self):
         counter = 1
-        data = {}
-        data['info'] = []
-
+        data = {'info': []}
         try:
-            while(True):
-                #print(self.url + str(counter))
-                res = req.get(self.url + str(counter))
+            while True:
+
+                res = req.get("".join([self.url, str(counter)]))
+                print("".join([self.url, str(counter)]))
                 soup = BeautifulSoup(res.text, 'html.parser')
                 page = soup.find('a', class_='tm-pagination__navigation-link tm-pagination__navigation-link_active')
-                items = soup.find_all('article', class_='tm-articles-list__item')
 
-                if page == None:
+                if page is None:
                     break
 
-                counter += 1
-
+                items = soup.find_all('article', class_='tm-articles-list__item')
                 for item in items:
-                    data['info'].append({
-                        'titles': item.find('a', class_='tm-article-snippet__title-link').get_text(strip=True),
-                        'times': item.find('span', class_='tm-article-snippet__datetime-published').get_text(strip=True),
-                        'views': item.find('span', class_='tm-icon-counter__value').get_text(strip=True),
-                        'saved': item.find('span', class_='bookmarks-button__counter').get_text(strip=True),
-                        'karma': item.find('span', class_='tm-votes-meter__value').get_text(strip=True)
 
-                    })
+                    try:
+                        data['info'].append({
+                            'titles': self.check_info('a', 'tm-article-snippet__title-link', item),
+                            'times': self.check_info('span', 'tm-article-snippet__datetime-published', item),
+                            'views': self.check_info('span', 'tm-icon-counter__value', item),
+                            'saved': self.check_info('span', 'bookmarks-button__counter', item),
+                            'karma': self.check_info('span', 'tm-votes-meter__value', item)
+                        })
 
-            with open('data.txt', 'w') as outfile:
-                json.dump(data, outfile, sort_keys=False, indent=2, ensure_ascii=False)
+                    except:
+                        reload(self.get_page_data())
+
+                counter += 1
             return data
+
         except(req.RequestException, ValueError):
             print('Server error!')
         return False
 
+    def check_info(self, tag_1, tag_2, item):
+        titles = item.find(tag_1, class_=tag_2)
+        if titles:
+            titles = titles.get_text(strip=True)
+        else:
+            titles = "0"
+        return titles
+
+
 if __name__ == "__main__":
     news = ParserStat()
-    print(news.get_info())
+    print(news.get_page_data())
